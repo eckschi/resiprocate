@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2010 Creytiv.com
  */
-
+#include <stdint.h>
 
 /** RTP protocol values */
 enum {
