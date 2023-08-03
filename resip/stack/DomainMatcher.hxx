@@ -55,7 +55,7 @@ class DomainMatcher
             thread (ie: DUMThread) for execution there, will be thread safe.
       */
       virtual void removeDomain(const Data& domain) = 0;
-
+      virtual ~DomainMatcher() {} 
 };
 
 }

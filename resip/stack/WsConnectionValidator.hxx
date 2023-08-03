@@ -10,6 +10,7 @@ class WsConnectionValidator
 {
    public:
       virtual bool validateConnection(const WsCookieContext& wsCookieContext)=0;
+      virtual ~WsConnectionValidator() {}
 };
 
 }
