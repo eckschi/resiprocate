@@ -83,6 +83,7 @@ public:
       ParticipantType_RemoteIMPager,
       ParticipantType_RemoteIMSession
    } ParticipantType;
+   static const char* participantTypeToString(ParticipantType partType);
 
    typedef enum
    {
@@ -268,24 +269,26 @@ public:
      buffer:<type> - For sipXtapi the only allowed type is RAW_PCM_16, the sampling rate
                          is expected to be 8khz.
 
-     other optional parameters are: [;duration=<duration>][;repeat][silencetime=<duration>][;format=<recording_format>]
+     other optional parameters are: [;duration=<milliseconds>][;repeat][silencetime=<milliseconds>][;format=<recording_format>][;startoffset=<milliseconds>]
         - 'duration' parameter will automatically stop playback if file is longer than duration. For recording, parameter specifies max recording length in Ms
         - 'repeat' parameter only makes sense for file and cache playback scheme's
         - 'silencetime' parameter specifies ms of silence to end recording
         - 'format' parameter only makes sense for recording scheme's.  Possible values: WAV_PCM16, WAV_MULAW, WAV_ALAW, WAV_GSM, OGG_OPUS
+        - 'startoffset' parameter specifies an offset, in milliseconds, that the file or buffer will start playing from.
      @note audio files may be AU, WAV or RAW formats.  Audiofiles should be 16bit mono, 8khz, PCM to avoid runtime conversion.
      @note http referenced audio files must be WAV files, 16 or 8bit, 8Khz, Mono.
 
      Sample mediaUrls:
-        tone:0                             - play DTMF tone 0 until participant is destroyed
-        tone:1;duration=1000               - play DTMF tone 1 for 1000ms, then automatically destroy participant
-        tone:ringback                      - play special tone "Ringback" to conversation until participant is manually destroyed
-        file://ringback.wav                - play the file ringback.wav until completed (automatically destroyed) or participant is manually destroyed
-        file://ringback.wav;duration=1000  - play the file ringback.wav for 1000ms (or until completed, if shorter), then automatically destroy participant
-        file://ringback.wav;repeat         - play the file ringback.wav, repeating when complete until participant is destroyed
-        file://hi.wav;repeat;duration=9000 - play the file hi.wav for 9000ms, repeating as required, then automatically destroy the participant
-        cache:welcomeprompt                - plays a prompt from the media cache with key/name "welcomeprompt"
-        record:recording.wav               - records all participants audio mixed together in a WAV file of type WAV_PCM16, must be manually destroyed
+        tone:0                           - play DTMF tone 0 until participant is destroyed
+        tone:1;duration=1000             - play DTMF tone 1 for 1000ms, then automatically destroy participant
+        tone:ringback                    - play special tone "Ringback" to conversation until participant is manually destroyed
+        file:ringback.wav                - play the file ringback.wav until completed (automatically destroyed) or participant is manually destroyed
+        file:ringback.wav;duration=1000  - play the file ringback.wav for 1000ms (or until completed, if shorter), then automatically destroy participant
+        file:ringback.wav;repeat         - play the file ringback.wav, repeating when complete until participant is destroyed
+        file:hi.wav;repeat;duration=9000 - play the file hi.wav for 9000ms, repeating as required, then automatically destroy the participant
+        file:music.wav;startoffset=2500  - play the file music.wav starting 2.5 seconds into the file, until completed or participant is manually destroyed
+        cache:welcomeprompt              - plays a prompt from the media cache with key/name "welcomeprompt"
+        record:recording.wav             - records all participants audio mixed together in a WAV file of type WAV_PCM16, must be manually destroyed
         record:recording.ogg;format=OGG_OPUS - records all participants audio mixed together in an Opus encoded OGG file, must be manually destroyed
         record:recording.wav;duration=30000;silencetime=5000 - records all participants audio mixed togehter in a WAV file, for up to 5 mins, stop
                                                                automatically when voice is missing for 5 seconds
@@ -294,7 +297,7 @@ public:
         record-mc:circularbuffer;format=WAV_PCM16;numchannels=2 - records all parties in the left channel unless they have channel 2 recording enabled
                                                  via the modifyParticipantRecordChannel API, then they are mixed into the right channel.  Use PCM16 
                                                  format and output to the provided ciruclar buffer (no WAV header is generated).  Must be manually destroyed.
-        buffer:RAW_PCM_16;repeat           - plays the audio from the provided playAudioBuffer parameter, repeating when complete until participant is destroyed
+        buffer:RAW_PCM_16;repeat         - plays the audio from the provided playAudioBuffer parameter, repeating when complete until participant is destroyed
 
      @param convHandle Handle of the conversation to create the MediaParticipant in
      @param mediaUrl   Url of media to play.  See above.
@@ -604,6 +607,21 @@ public:
    virtual void onParticipantTerminated(ParticipantHandle partHandle, unsigned int statusCode) = 0;
 
    /**
+     Notifies an application about a disconnect by a remote participant.
+     For SIP this could be a BYE or a CANCEL request. 
+     
+     If you override this version of the callback, then the version above will not
+     be called, and you can implement it with an empty body. Implemented this way, 
+     so that we don't break ABI for existing applications.
+
+     @param partHandle Handle of the participant that terminated
+     @param statusCode The status Code for the termination.
+     @param reason The reason for the termination, if available, can be the
+                   reason header from a received BYE message (if present)
+   */
+   virtual void onParticipantTerminated(ParticipantHandle partHandle, unsigned int statusCode, const resip::Data& reason) { onParticipantTerminated(partHandle, statusCode); }
+
+   /**
      Notifies an application when a conversation has been destroyed.  
      This is useful for tracking conversations that get created when forking 
      occurs, and are destroyed when forked call is answered or ended.
@@ -620,6 +638,20 @@ public:
      @param partHandle Handle of the destroyed participant
    */
    virtual void onParticipantDestroyed(ParticipantHandle partHandle) = 0;
+
+   /**
+     Notifies an application when a Participant has been destroyed.  This is
+     useful for tracking when audio playback via MediaResourceParticipants has
+     stopped.
+
+     If you override this version of the callback, then the version above will not
+     be called, and you can implement it with an empty body. Implemented this way, 
+     so that we don't break ABI for existing applications.
+
+     @param partHandle Handle of the destroyed participant
+     @param partType   The type of participant being destroyed.
+   */
+   virtual void onParticipantDestroyed(ParticipantHandle partHandle, ParticipantType partType) { onParticipantDestroyed(partHandle); }
 
    /**
      Notifies an applications that a outbound remote participant request has 

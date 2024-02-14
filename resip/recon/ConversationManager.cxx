@@ -41,8 +41,7 @@ ConversationManager::ConversationManager(std::shared_ptr<MediaStackAdapter> medi
   mConfigParse(configParse),
   mShuttingDown(false),
   mCurrentConversationHandle(1),
-  mCurrentParticipantHandle(1),
-  mBridgeMixer(0)
+  mCurrentParticipantHandle(1)
 {
    if(mConfigParse)
    {
@@ -58,7 +57,30 @@ ConversationManager::~ConversationManager()
 {
    resip_assert(mConversations.empty());
    resip_assert(mParticipants.empty());
+   InfoLog(<< "ConversationManager::~ConversationManager destroying BridgeMixer...");
    mBridgeMixer.reset();       // Make sure the mixer is destroyed before the media interface
+   InfoLog(<< "ConversationManager::~ConversationManager destroying MediaStackAdapter...");
+   mMediaStackAdapter.reset();
+   InfoLog(<< "ConversationManager::~ConversationManager complete.");
+}
+
+const char* ConversationManager::participantTypeToString(ConversationManager::ParticipantType partType)
+{
+   switch (partType)
+   {
+   case ParticipantType_Local:
+      return "Local";
+   case ParticipantType_Remote:
+      return "Remote";
+   case ParticipantType_MediaResource:
+      return "MediaResource";
+   case ParticipantType_RemoteIMPager:
+      return "RemoteIMPager";
+   case ParticipantType_RemoteIMSession:
+      return "RemoteIMSession";
+   }
+   assert(false);
+   return "UNKNOWN";
 }
 
 void
@@ -71,6 +93,8 @@ ConversationManager::setUserAgent(UserAgent* userAgent)
 void
 ConversationManager::shutdown()
 {
+   InfoLog(<< "ConversationManager::shutting down.  Ending any active conversations and participants...");
+
    mShuttingDown = true;
 
    // Destroy each Conversation
@@ -93,15 +117,17 @@ ConversationManager::shutdown()
 
    if(mMediaStackAdapter.get())
    {
+      InfoLog(<< "ConversationManager::shutting down MediaStackAdapter...");
       mMediaStackAdapter->shutdown();
-      mMediaStackAdapter.reset();
+      //mMediaStackAdapter.reset();  // Reset here causes a deadlock, will reset in destructor instead
    }
+   InfoLog(<< "ConversationManager::shutdown.");
 }
 
 void
 ConversationManager::process()
 {
-   if(mMediaStackAdapter)
+   if(!mShuttingDown)
    {
       mMediaStackAdapter->process();
    }

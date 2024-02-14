@@ -121,11 +121,11 @@ class JoinConversationCmd  : public resip::DumCommandAdapter
          {
             if (!sourceConversation)
             {
-               WarningLog(<< "JoinConversationCmd: invalid source conversation handle.");
+               WarningLog(<< "JoinConversationCmd: invalid source conversation handle: " << mSourceConvHandle);
             }
             if (!destConversation)
             {
-               WarningLog(<< "JoinConversationCmd: invalid destination conversation handle.");
+               WarningLog(<< "JoinConversationCmd: invalid destination conversation handle: " << mDestConvHandle);
             }
          }
       }
@@ -168,13 +168,13 @@ class CreateRemoteParticipantCmd  : public resip::DumCommandAdapter
             else
             {
                WarningLog(<< "CreateRemoteParticipantCmd: error creating UACOriginalRemoteParticipant.");
-               mConversationManager->onParticipantDestroyed(mPartHandle);
+               mConversationManager->onParticipantDestroyed(mPartHandle, ConversationManager::ParticipantType_Remote);
             }
          }
          else
          {
-            WarningLog(<< "CreateRemoteParticipantCmd: invalid conversation handle.");
-            mConversationManager->onParticipantDestroyed(mPartHandle);
+            WarningLog(<< "CreateRemoteParticipantCmd: invalid conversation handle: " << mConvHandle);
+            mConversationManager->onParticipantDestroyed(mPartHandle, ConversationManager::ParticipantType_Remote);
          }
       }
       EncodeStream& encodeBrief(EncodeStream& strm) const { strm << " CreateRemoteParticipantCmd: "; return strm; }
@@ -237,7 +237,7 @@ public:
       else
       {
          WarningLog(<< "CreateRemoteIMSessionParticipantCmd: error creating UACOriginalRemoteParticipant.");
-         mConversationManager->onParticipantDestroyed(mPartHandle);
+         mConversationManager->onParticipantDestroyed(mPartHandle, ConversationManager::ParticipantType_RemoteIMSession);
       }
    }
    EncodeStream& encodeBrief(EncodeStream& strm) const { strm << " CreateRemoteIMSessionParticipantCmd: "; return strm; }
@@ -279,13 +279,13 @@ class CreateMediaResourceParticipantCmd : public resip::DumCommandAdapter
             else
             {
                WarningLog(<< "CreateMediaResourceParticipantCmd: error creating MediaResourceParticipant.");
-               mConversationManager->onParticipantDestroyed(mPartHandle);
+               mConversationManager->onParticipantDestroyed(mPartHandle, ConversationManager::ParticipantType_MediaResource);
             }
          }
          else
          {
-            WarningLog(<< "CreateMediaResourceParticipantCmd: invalid conversation handle.");
-            mConversationManager->onParticipantDestroyed(mPartHandle);
+            WarningLog(<< "CreateMediaResourceParticipantCmd: invalid conversation handle: " << mConvHandle);
+            mConversationManager->onParticipantDestroyed(mPartHandle, ConversationManager::ParticipantType_MediaResource);
          }
       }
       EncodeStream& encodeBrief(EncodeStream& strm) const { strm << " CreateMediaResourceParticipantCmd: "; return strm; }

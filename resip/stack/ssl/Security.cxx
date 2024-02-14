@@ -331,7 +331,7 @@ Security::preload()
    {
       // If no other source of trusted roots exists,
       // assume mPath was meant to be in mCADirectories
-      WarningLog(<<"No root certificates found using legacy prefixes, "
+      InfoLog(<<"No root certificates found using legacy prefixes, "
                    "treating mPath as a normal directory of root certs");
       loadCADirectory(mPath);
    }
@@ -1927,6 +1927,7 @@ BaseSecurity::checkIdentity( const Data& signerDomain, const Data& in, const Dat
 }
 
 
+// TODO !SLG!  RFC4474 has been deprecated by RFC8224 (Authenticated Identity Management).  We should remove/adjust this code.
 void
 BaseSecurity::checkAndSetIdentity(SipMessage& msg, const Data& certDer) const
 {
@@ -1948,7 +1949,7 @@ BaseSecurity::checkAndSetIdentity(SipMessage& msg, const Data& certDer) const
       {
          if ( checkIdentity(msg.const_header(h_From).uri().host(),
                             msg.getCanonicalIdentityString(),
-                            msg.const_header(h_Identity).value(),
+                            msg.const_header(h_Identities).front().value(),
                             cert ) )
          {
             sec->setIdentity(msg.const_header(h_From).uri().getAor());
@@ -3021,28 +3022,28 @@ BaseSecurity::setDHParams(SSL_CTX* ctx)
 {
    if(mDHParamsFilename.empty())
    {
-      WarningLog(<< "unable to load DH parameters (required for PFS): TlsDHParamsFilename not specified");
+      InfoLog(<< "Unable to load DH parameters (required for PFS): TlsDHParamsFilename not specified");
    }
    else
    {
-      DebugLog(<< "attempting to read DH parameters from " << mDHParamsFilename);
+      DebugLog(<< "Attempting to read DH parameters from " << mDHParamsFilename);
 
       BIO* bio = BIO_new_file(mDHParamsFilename.c_str(), "r");
       if(bio == NULL)
       {
-         WarningLog(<< "unable to load DH parameters (required for PFS): BIO_new_file failed to open file " << mDHParamsFilename);
+         WarningLog(<< "Unable to load DH parameters (required for PFS): BIO_new_file failed to open file " << mDHParamsFilename);
       }
 
       DH* dh = PEM_read_bio_DHparams(bio, NULL, NULL, NULL);
       if(dh == NULL)
       {
-         WarningLog(<< "unable to load DH parameters (required for PFS): PEM_read_bio_DHparams failed for file " << mDHParamsFilename);
+         WarningLog(<< "Unable to load DH parameters (required for PFS): PEM_read_bio_DHparams failed for file " << mDHParamsFilename);
       }
       else
       {
          if(!SSL_CTX_set_tmp_dh(ctx, dh))
          {
-            WarningLog(<< "unable to load DH parameters (required for PFS): SSL_CTX_set_tmp_dh failed for file " << mDHParamsFilename);
+            WarningLog(<< "Unable to load DH parameters (required for PFS): SSL_CTX_set_tmp_dh failed for file " << mDHParamsFilename);
          }
          else
          {

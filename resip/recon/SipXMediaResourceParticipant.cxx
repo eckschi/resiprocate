@@ -175,9 +175,6 @@ SipXMediaResourceParticipant::startResourceImpl()
    case File:
    {
       Data filepath = getMediaUrl().host().urlDecoded();
-      if (filepath.size() > 3 && filepath.substr(0, 3) == Data("///")) filepath = filepath.substr(2);
-      else if (filepath.size() > 2 && filepath.substr(0, 2) == Data("//")) filepath = filepath.substr(1);
-
       filepath.replace("|", ":");  // For Windows filepath processing - convert | to :
 
       InfoLog(<< "SipXMediaResourceParticipant playing, handle=" << mHandle << " filepath=" << filepath);
@@ -188,7 +185,11 @@ SipXMediaResourceParticipant::startResourceImpl()
          isRepeat() ? TRUE : FALSE /* repeast? */,
          TRUE /* local - unused */, TRUE /* remote - unused */);
 #else
-      OsStatus status = mediaInterface->getInterface()->playAudio(mSipXResourceName.c_str(), filepath.c_str(), isRepeat() ? TRUE : FALSE /* repeat? */);
+      OsStatus status = mediaInterface->getInterface()->playAudio(mSipXResourceName.c_str(), 
+         filepath.c_str(), 
+         isRepeat() ? TRUE : FALSE,
+         TRUE /* autoStopAfterFinish? */,
+         getStartOffsetMs());
 #endif
 
       if(status == OS_SUCCESS)
@@ -227,7 +228,10 @@ SipXMediaResourceParticipant::startResourceImpl()
             buffer->size(),
             8000, /* rate */
             type,
-            isRepeat() ? TRUE : FALSE /* repeat? */);
+            isRepeat() ? TRUE : FALSE,
+            NULL /* OsProtectedEvent */,
+            TRUE /* autoStopAfterFinish? */,
+            getStartOffsetMs());
 #endif
          if (status == OS_SUCCESS)
          {
@@ -271,7 +275,10 @@ SipXMediaResourceParticipant::startResourceImpl()
                buffer->size(),
                8000, /* rate */
                0,  // RAW_PCM_16 = 0 - always correct for SipXMedia:  see sipXTapi.h: SIPX_AUDIO_DATA_FORMAT
-               isRepeat() ? TRUE : FALSE /* repeat? */);
+               isRepeat() ? TRUE : FALSE,
+               NULL /* OsProtectedEvent */,
+               TRUE /* autoStopAfterFinish? */,
+               getStartOffsetMs());
 #endif
             if (status == OS_SUCCESS)
             {
@@ -415,9 +422,6 @@ SipXMediaResourceParticipant::startResourceImpl()
       }
 
       Data filepath = getMediaUrl().host().urlDecoded();
-      if (filepath.size() > 3 && filepath.substr(0, 3) == Data("///")) filepath = filepath.substr(2);
-      else if (filepath.size() > 2 && filepath.substr(0, 2) == Data("//")) filepath = filepath.substr(1);
-
       filepath.replace("|", ":");  // For Windows filepath processing - convert | to :
 
       bool append = getMediaUrl().exists(p_append);

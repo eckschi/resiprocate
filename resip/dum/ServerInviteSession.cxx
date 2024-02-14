@@ -913,7 +913,7 @@ ServerInviteSession::dispatch(const DumTimeout& timeout)
          unsigned int duration = 2*timeout.secondarySeq();
          if(duration>=64*Timer::T1)
          {
-            InfoLog (<< "Reliable provisional timeout" );
+            InfoLog (<< "Reliable provisional timeout, duration=" << duration );
             auto i504 = std::make_shared<SipMessage>();
             mDialog.makeResponse(*i504, mFirstRequest, 504);
             send(i504);
@@ -932,7 +932,7 @@ ServerInviteSession::dispatch(const DumTimeout& timeout)
          }
          else
          {
-            InfoLog (<< "Reliable provisional retransmit" );
+            InfoLog (<< "Reliable provisional retransmit, duration=" << duration );
             send(mUnacknowledgedReliableProvisional);
             mDum.addTimerMs(DumTimeout::Retransmit1xxRel, duration, getBaseHandle(), timeout.seq(), duration);
          }
@@ -1679,6 +1679,20 @@ ServerInviteSession::dispatchNoAnswerReliableWaitingPrack(const SipMessage& msg)
 
                transition(UAS_NoAnswerReliable);
                handler->onPrack(getHandle(), msg);
+
+               // If we have a provisional to send with answer then transition to UAS_FirstSentAnswerReliable,
+               // otherwise if there is no answer, go to UAS_NoAnswerReliableWaitingPrack.
+               if (!mQueuedResponses.empty() && mQueuedResponses.front().first < 200)
+               {
+                  if (mQueuedResponses.front().second)  // Early flag is on
+                  {
+                     transition(UAS_FirstSentAnswerReliable);
+                  }
+                  else
+                  {
+                     transition(UAS_NoAnswerReliableWaitingPrack);
+                  }
+               }
                prackCheckQueue();
             }
          }
